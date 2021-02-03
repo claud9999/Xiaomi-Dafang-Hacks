@@ -3,9 +3,6 @@
 . /system/sdcard/config/mqtt.conf
 . /system/sdcard/scripts/common_functions.sh
 
-killall mosquitto_sub 2> /dev/null
-killall mosquitto_sub.bin 2> /dev/null
-
 while true; do
   /system/sdcard/bin/mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" -t "${TOPIC}"/init ${MOSQUITTOOPTS} -n
   case $? in

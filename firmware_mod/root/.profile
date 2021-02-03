@@ -6,3 +6,6 @@ PATH=/system/sdcard/bin:$PATH
 
 # load some convenience functions 
 . /system/sdcard/scripts/common_functions.sh
+
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/system/sdcard/lib
+export LD_LIBRARY_PATH

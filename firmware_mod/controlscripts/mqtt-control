@@ -33,12 +33,15 @@ start()
 
 stop()
 {
+  echo "Stopping MQTT - Control"
   pid="$(cat "$PIDFILE" 2>/dev/null)"
   if [ "$pid" ]; then
 	kill "$pid"
 	rm "$PIDFILE" 1> /dev/null 2>&1
-	killall mosquitto_sub 2>/dev/null
-	killall mosquitto_sub.bin 2>/dev/null
+        cmd=`basename $0`
+        for pid in `ps -ef | grep ${cmd} | sed -e 's/ root.*//'`; do
+            kill ${pid} 2> /dev/null
+        done
   fi
 }
 
