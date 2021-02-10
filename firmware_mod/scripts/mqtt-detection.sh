@@ -10,18 +10,18 @@ function detection_on {
         yellow_led on
     fi
 
-    # Save a snapshot
-    if [ "$save_snapshot" = true ] ; then
-	filename=$(date +%d-%m-%Y_%H.%M.%S).jpg
-	if [ ! -d "$save_snapshot_dir" ]; then
-		mkdir -p $save_snapshot_dir
-	fi
-	# Limit the number of snapshots
-	if [[ $(ls $save_snapshot_dir | wc -l) -ge $max_snapshots ]]; then
-		rm -f "$save_snapshot_dir/$(ls -l $save_snapshot_dir | awk 'NR==2{print $9}')"
-	fi
-	/system/sdcard/bin/getimage > $save_snapshot_dir/$filename &
-    fi
+#    # Save a snapshot
+#    if [ "$save_snapshot" = true ] ; then
+#	filename=$(date +%d-%m-%Y_%H.%M.%S).jpg
+#	if [ ! -d "$save_snapshot_dir" ]; then
+#		mkdir -p $save_snapshot_dir
+#	fi
+#	# Limit the number of snapshots
+#	if [[ $(ls $save_snapshot_dir | wc -l) -ge $max_snapshots ]]; then
+#		rm -f "$save_snapshot_dir/$(ls -l $save_snapshot_dir | awk 'NR==2{print $9}')"
+#	fi
+#	/system/sdcard/bin/getimage > $save_snapshot_dir/$filename &
+#    fi
 
     # Publish a mqtt message
     if [ "$publish_mqtt_message" = true ] ; then
@@ -66,6 +66,25 @@ function detection_off {
         fi
     done
 }
+
+function snap_thread() {
+    if [ ! -d "$save_snapshot_dir" ]; then
+        mkdir -p $save_snapshot_dir
+    fi
+
+    while [ true ]; do
+        echo "waiting for snapshots..."
+        /system/sdcard/bin/mosquitto_sub.bin -t "rtsp/motion/detect/snap" -C 1 > $save_snapshot_dir/current.jpg
+	filename=$(date +%d-%m-%Y_%H.%M.%S).jpg
+	# Limit the number of snapshots
+	if [[ $(ls $save_snapshot_dir | wc -l) -ge $max_snapshots ]]; then
+		rm -f "$save_snapshot_dir/$(ls -l $save_snapshot_dir | awk 'NR==2{print $9}')"
+	fi
+        mv $save_snapshot_dir/current.jpg $save_snapshot_dir/$filename
+    done
+}
+
+snap_thread &
 
 while [ true ]; do
     echo "starting mosquitto_sub.bin"
