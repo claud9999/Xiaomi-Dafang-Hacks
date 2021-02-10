@@ -13,14 +13,14 @@ function detection_on {
     # Save a snapshot
     if [ "$save_snapshot" = true ] ; then
 	filename=$(date +%d-%m-%Y_%H.%M.%S).jpg
-	if [ ! -d "$save_dir" ]; then
-		mkdir -p $save_dir
+	if [ ! -d "$save_snapshot_dir" ]; then
+		mkdir -p $save_snapshot_dir
 	fi
 	# Limit the number of snapshots
-	if [[ $(ls $save_dir | wc -l) -ge $max_snapshots ]]; then
-		rm -f "$save_dir/$(ls -l $save_dir | awk 'NR==2{print $9}')"
+	if [[ $(ls $save_snapshot_dir | wc -l) -ge $max_snapshots ]]; then
+		rm -f "$save_snapshot_dir/$(ls -l $save_snapshot_dir | awk 'NR==2{print $9}')"
 	fi
-	/system/sdcard/bin/getimage > $save_dir/$filename &
+	/system/sdcard/bin/getimage > $save_snapshot_dir/$filename &
     fi
 
     # Publish a mqtt message
@@ -28,7 +28,7 @@ function detection_on {
         . /system/sdcard/config/mqtt.conf
 	/system/sdcard/bin/mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" -t "${TOPIC}"/motion ${MOSQUITTOOPTS} ${MOSQUITTOPUBOPTS} -m "ON"
 	if [ "$save_snapshot" = true ] ; then
-            /system/sdcard/bin/mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" -t "${TOPIC}"/motion/snapshot ${MOSQUITTOOPTS} ${MOSQUITTOPUBOPTS} -f $save_dir/$filename
+            /system/sdcard/bin/mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" -t "${TOPIC}"/motion/snapshot ${MOSQUITTOOPTS} ${MOSQUITTOPUBOPTS} -f $save_snapshot_dir/$filename
 	fi
     fi
 
