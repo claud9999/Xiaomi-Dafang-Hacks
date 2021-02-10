@@ -1,4 +1,4 @@
 #!/bin/sh
 LD_LIBRARY_PATH='/thirdlib:/system/lib:/system/sdcard/lib'
-export SNAP_NAME=mosquitto
+export SNAP_NAME=mosquitto # otherwise the broker tries to setuid(mosquitto)
 exec /system/sdcard/bin/mosquitto.bin "$@"
