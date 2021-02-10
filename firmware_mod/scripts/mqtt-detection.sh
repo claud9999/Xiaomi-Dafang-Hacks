@@ -74,13 +74,13 @@ function snap_thread() {
 
     while [ true ]; do
         echo "waiting for snapshots..."
-        /system/sdcard/bin/mosquitto_sub.bin -t "rtsp/motion/detect/snap" -C 1 > $save_snapshot_dir/current.jpg
+        /system/sdcard/bin/mosquitto_sub.bin -t "rtsp/motion/detect/snap" -C 1 > /tmp/current.jpg
 	filename=$(date +%d-%m-%Y_%H.%M.%S).jpg
 	# Limit the number of snapshots
 	if [[ $(ls $save_snapshot_dir | wc -l) -ge $max_snapshots ]]; then
 		rm -f "$save_snapshot_dir/$(ls -l $save_snapshot_dir | awk 'NR==2{print $9}')"
 	fi
-        mv $save_snapshot_dir/current.jpg $save_snapshot_dir/$filename
+        mv /tmp/current.jpg $save_snapshot_dir/$filename
     done
 }
 
