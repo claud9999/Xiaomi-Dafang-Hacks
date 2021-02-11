@@ -23,17 +23,15 @@ function detection_on {
 #	/system/sdcard/bin/getimage > $save_snapshot_dir/$filename &
 #    fi
 
-    # Publish a mqtt message
     if [ "$publish_mqtt_message" = true ] ; then
         . /system/sdcard/config/mqtt.conf
+	echo publishing mqtt message to $HOST:$PORT
 	/system/sdcard/bin/mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" -t "${TOPIC}"/motion ${MOSQUITTOOPTS} ${MOSQUITTOPUBOPTS} -m "ON"
-	if [ "$save_snapshot" = true ] ; then
-            /system/sdcard/bin/mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" -t "${TOPIC}"/motion/snapshot ${MOSQUITTOOPTS} ${MOSQUITTOPUBOPTS} -f $save_snapshot_dir/$filename
-	fi
     fi
 
     # Send emails ...
     if [ "$sendemail" = true ] ; then
+	echo sending e-mail
         /system/sdcard/scripts/sendPictureMail.sh &
     fi
 
@@ -77,29 +75,33 @@ function snap_thread() {
         /system/sdcard/bin/mosquitto_sub.bin -t "rtsp/motion/detect/snap" -C 1 > /tmp/current.jpg
 	filename=$(date +%d-%m-%Y_%H.%M.%S).jpg
 	# Limit the number of snapshots
-	if [[ $(ls $save_snapshot_dir | wc -l) -ge $max_snapshots ]]; then
-		rm -f "$save_snapshot_dir/$(ls -l $save_snapshot_dir | awk 'NR==2{print $9}')"
-	fi
+#	if [[ $(ls $save_snapshot_dir | wc -l) -ge $max_snapshots ]]; then
+#		rm -f "$save_snapshot_dir/$(ls -l $save_snapshot_dir | awk 'NR==2{print $9}')"
+#	fi
         mv /tmp/current.jpg $save_snapshot_dir/$filename
     done
 }
 
+
 snap_thread &
 
 while [ true ]; do
-    echo "starting mosquitto_sub.bin"
+    echo "MQTT rtsp/motion/detect"
     /system/sdcard/bin/mosquitto_sub.bin -v -t "rtsp/motion/detect" | while read -r line ; do
         echo "---$line---"
         case $line in
             "rtsp/motion/detect ON")
-                echo "--DETECT ON--"
+                echo "--DETECT ON START--"
                 detection_on
+                echo "--DETECT ON DONE--"
             ;;
             "rtsp/motion/detect OFF")
-                echo "--DETECT OFF--"
+                echo "--DETECT OFF START--"
                 detection_off
+                echo "--DETECT OFF DONE--"
             ;;
         esac
     done
+    echo "MQTT rtsp/motion/detect failed, sleeping 60s"
     sleep 60 # if mosquitto_sub fails, wait around in case mosquitto broker starts
 done
