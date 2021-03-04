@@ -1,0 +1,62 @@
+#!/bin/sh
+PIDFILE="/run/mqtt-snap.pid"
+
+is_running() {
+    # returns 0 if the process is running, otherwise 1
+    if [ ! -r $PIDFILE ]; then return 1; fi
+
+    pid="$(cat "$PIDFILE" 2>/dev/null)"
+    if [ "$pid" ]; then
+	kill -0 "$pid" >/dev/null && return 0
+        rm "$PIDFILE"
+    fi
+    return 1
+}
+
+status() {
+    if is_running; then
+        echo running
+    else
+        echo stopped
+    fi
+}
+
+start() {
+    if is_running; then
+	echo "MQTT Snap already running";
+        return 0
+    else
+        echo "Starting MQTT - Snap"
+        /system/sdcard/bin/busybox nohup /system/sdcard/scripts/mqtt-snap.sh &>/dev/null &
+        echo "$!" > "$PIDFILE"
+    fi
+}
+
+stop()
+{
+    if is_running; then
+        echo "Stopping MQTT - Snap"
+
+        pid="$(cat "$PIDFILE" 2>/dev/null)"
+        if [ "$pid" ]; then
+            kill "$pid"
+            rm "$PIDFILE" 1> /dev/null 2>&1
+            cmd=`basename $0`
+            for pid in `ps -ef | grep ${cmd} | sed -e 's/ root.*//'`; do
+                kill ${pid} 2> /dev/null
+            done
+        fi
+    else
+        echo "Not running MQTT - Snap"
+        return 0
+    fi
+}
+
+if [ $# -eq 0 ]; then
+    start
+else
+    case $1 in start|stop|status)
+	$1
+	;;
+    esac
+fi
