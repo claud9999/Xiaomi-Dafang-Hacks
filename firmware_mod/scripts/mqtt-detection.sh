@@ -5,6 +5,8 @@
 . /system/sdcard/config/motion.conf
 
 heartbeat_time=30
+mqtt_topic="rtsp/motion/detect"
+mqtt_id="$0"
 
 function detection_on {
     # Turn on the amber led
@@ -56,7 +58,7 @@ function detection_off {
 
 while [ true ]; do
     (
-        mosquitto_sub.bin -v -t "rtsp/motion/detect" -W ${heartbeat_time} | while read -r line ; do
+        mosquitto_sub.bin -v --topic "${mqtt_topic}" --disable-clean-session --id "$mqtt_id" -W ${heartbeat_time} | while read -r line ; do
             echo "---$line---"
             case $line in
                 "rtsp/motion/detect ON")

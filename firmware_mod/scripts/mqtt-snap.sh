@@ -5,6 +5,11 @@
 . /system/sdcard/config/motion.conf
 
 heartbeat_time=30
+snap_topic='rtsp/motion/detect/snap'
+heartbeat_topic='scripts/mqtt_snap/heartbeat'
+mqtt_id=$0
+
+snapnum=0
 
 if [ ! -d "$save_snapshot_dir" ]; then
     mkdir -p $save_snapshot_dir
@@ -14,18 +19,27 @@ next_heartbeat=0
 
 while [ true ]; do
     echo "waiting for snapshots..."
-    mosquitto_sub.bin -t "rtsp/motion/detect/snap" -C 1 -W 30 > /tmp/current.jpg
-    if [ -r /tmp/current.jpg ]; then
-        filename=$save_snapshot_dir/$(date +%d-%m-%Y_%H.%M.%S).jpg
-        mv /tmp/current.jpg $filename
+    snapfile="/tmp/pic-${snapnum}.jpg"
+    mosquitto_sub.bin --topic "${snap_topic}" --disable-clean-session --id "$mqtt_id" -C 1 -W 30 > $snapfile
+    if [ $? -eq 0 ]; then
+        timestamp=$(date '+%d-%m-%Y_%H.%M.%S')
+        filenum=0
+        while [ true ]; do
+            filename=${save_snapshot_dir}/${timestamp}-${filenum}.jpg
+            if [ ! -r ${filename} ]; then break; fi
+            filenum=$(( ${filenum} + 1 ))
+        done
+
+        mv ${snapfile} ${filename}
 
         if [ "$publish_mqtt_snapshot" = true ] ; then
-            mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" -t "$TOPIC"/motion/snapshot/image $MOSQUITTOOPTS $MOSQUITTOPUBOPTS -f "$filename"
+            mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" --topic "${TOPIC}/motion/snapshot/image" $MOSQUITTOOPTS $MOSQUITTOPUBOPTS -f "${filename}"
         fi
+        snapnum=$(( $snapnum + 1 ))
     fi
     t=$(date '+%s')
     if [ $t -gt $next_heartbeat ]; then
-        mosquitto_pub.bin -t 'scripts/mqtt_snap/heartbeat' -m 'ON'
+        mosquitto_pub.bin --topic "${heartbeat_topic}" --message 'ON'
         next_heartbeat=$(( $(date '+%s') + 30 ))
     fi
 done
