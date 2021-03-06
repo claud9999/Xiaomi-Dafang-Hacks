@@ -22,19 +22,12 @@ while [ true ]; do
     snapfile="/tmp/pic-${snapnum}.jpg"
     mosquitto_sub.bin --topic "${snap_topic}" --disable-clean-session --id "$mqtt_id" -C 1 -W 30 > $snapfile
     if [ $? -eq 0 ]; then
-        timestamp=$(date '+%d-%m-%Y_%H.%M.%S')
-        filenum=0
-        while [ true ]; do
-            filename=${save_snapshot_dir}/${timestamp}-${filenum}.jpg
-            if [ ! -r ${filename} ]; then break; fi
-            filenum=$(( ${filenum} + 1 ))
-        done
-
-        mv ${snapfile} ${filename}
-
         if [ "$publish_mqtt_snapshot" = true ] ; then
-            mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" --topic "${TOPIC}/motion/snapshot/image" $MOSQUITTOOPTS $MOSQUITTOPUBOPTS -f "${filename}"
+            mosquitto_pub.bin -h "$HOST" -p "$PORT" -u "$USER" -P "$PASS" --topic "${TOPIC}/motion/snapshot/image" $MOSQUITTOOPTS $MOSQUITTOPUBOPTS -f "${snapfile}"
         fi
+
+        mv ${snapfile} ${save_snapshot_dir}/$(date '+%d-%m-%Y_%H.%M.%S').jpg
+
         snapnum=$(( $snapnum + 1 ))
     fi
     t=$(date '+%s')
